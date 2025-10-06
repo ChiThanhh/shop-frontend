@@ -5,7 +5,7 @@ const API_URL = import.meta.env.VITE_API_URL;
 
 const api = axios.create({
   baseURL: API_URL,
-  timeout: 10000, // 10 giây
+  timeout: 10000, 
   headers: {
     "Content-Type": "application/json",
   },
@@ -25,7 +25,7 @@ api.interceptors.request.use(
 
 // Interceptor response: bắt lỗi chung
 api.interceptors.response.use(
-  (response) => response.data, // chỉ trả về data
+  (response) => response.data, 
   (error) => {
     if (error.response) {
       console.error("API Error:", error.response.data.message || error.message);

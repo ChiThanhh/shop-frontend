@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import Slider from "@/pages/Slider";
 import { AnimatedTestimonials } from "@/components/ui/animated-testimonials";
-import ProductItem from "@/components/ProductItem";
 import { getProduct } from "@/services/ProductService";
+import ProductItem from "@/components/product/ProductItem";
 
 
 

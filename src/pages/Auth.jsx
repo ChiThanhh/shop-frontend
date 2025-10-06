@@ -6,7 +6,8 @@ import Register from "./Register";
 
 const Auth = ({ onClose }) => {
   const [tab, setTab] = useState("login");
-
+  
+  
   const variants = {
     initial: (direction) => ({
       x: direction === "login" ? -40 : 40,

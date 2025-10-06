@@ -10,10 +10,13 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
 import { getPrice } from "@/services/ProductService";
 import { useLoading } from "@/context/loadingContext";
 import { toast } from "sonner";
+import { addToCart, createToCart } from "@/services/CartService";
+import { useConfirm } from "@/context/confirmContext";
+import { useCart } from "@/context/cartContext";
 
 // Utility to format VND
 const formatVND = (value) => {
@@ -44,7 +47,6 @@ const DetailProduct = (p) => {
         description,
         colors = [],
         sizes = [],
-        onAddToCart,
     } = p || {};
 
     const { withLoading } = useLoading();
@@ -52,6 +54,12 @@ const DetailProduct = (p) => {
     const [color, setColor] = useState("");
     const [size, setSize] = useState("");
     const [currentPrice, setCurrentPrice] = useState(price);
+    const { confirm } = useConfirm();
+    const { cart, setCart } = useCart();
+    const token = localStorage.getItem("token");
+    const [variantId, setVariantId] = useState("");
+    const user = JSON.parse(localStorage.getItem("user"));
+
 
     useEffect(() => {
         if (!product_id || !color || !size) return;
@@ -60,6 +68,7 @@ const DetailProduct = (p) => {
             try {
                 const res = await getPrice(product_id, color, size);
                 setCurrentPrice(res.data?.list_amount ?? price);
+                setVariantId(res.data?.variant_id)
             } catch (e) {
                 console.error("Failed to fetch price", e);
             }
@@ -68,21 +77,59 @@ const DetailProduct = (p) => {
         withLoading(fetchPrice);
     }, [product_id, color, size]);
 
+    const handleAdd = async () => {
+        if (!token) {
+            toast.error("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng");
+        };
+        if (!color) {
+            toast.error("Vui lòng chọn màu sắc");
+            return;
+        }
+        if (!size) {
+            toast.error("Vui lòng chọn kích cỡ");
+            return;
+        }
 
+
+        try {
+            let cartId = cart?.cart_id;
+
+            if (!cartId) {
+                const newCart = await createToCart({
+                    user_id: user.user_id,
+                    currency: "VND",
+                });
+                cartId = newCart.data?.cart_id;
+                setCart({ ...newCart.data, items: [] });
+            }
+
+            const dataAdd = {
+                cart_id: cartId,
+                variant_id: variantId,
+                qty: quantity,
+                unit_price: currentPrice,
+            };
+            const ok = await confirm("Xác nhận thêm sản phẩm vào giỏ hàng?");
+            if (!ok) return;
+
+            await addToCart(dataAdd);
+
+            const updatedCart = await withLoading(async () => {
+                const { getListCart } = await import("@/services/CartService");
+                return await getListCart();
+            });
+
+            setCart(updatedCart.data);
+            toast.success("Thêm vào giỏ hàng thành công");
+        } catch (e) {
+            console.error("Failed to add to cart", e);
+        }
+
+
+    };
 
     const priceText = useMemo(() => formatVND(currentPrice), [currentPrice]);
 
-    const handleAdd = () => {
-        if (!color) {
-            toast.error("Vui lòng chọn màu sắc sản phẩm");
-            return;
-        } ;
-        if (!size) {
-            toast.error("Vui lòng chọn kích cỡ sản phẩm");
-            return;
-        } ;
-        onAddToCart?.({ name, image, price: currentPrice, quantity, color, size });
-    };
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>

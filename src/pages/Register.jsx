@@ -11,7 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import * as Yup from "yup"; // ✅ đổi sang Yup
-import { registerApi } from "@/services/AuthService";
+import { googleLoginApi, registerApi } from "@/services/AuthService";
 import { toast } from "sonner";
 import { useLoading } from "@/context/loadingContext";
 
@@ -31,7 +31,7 @@ const registerSchema = Yup.object().shape({
     .required("Xác nhận mật khẩu là bắt buộc"),
 });
 
-const Register = ({setTab }) => {
+const Register = ({ setTab }) => {
   const { withLoading } = useLoading();
   const [formData, setFormData] = useState({
     full_name: "",
@@ -49,31 +49,31 @@ const Register = ({setTab }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     await withLoading(async () => {
-    try {
-      await registerSchema.validate(formData, { abortEarly: false });
+      try {
+        await registerSchema.validate(formData, { abortEarly: false });
 
-      setErrors({});
-      const { full_name, email, password } = formData;
-      await registerApi({ full_name, email, password }); 
-      toast.success("Đăng ký tài khoản thành công!");
-          setTab("login");
-      setFormData({
-        full_name: "",
-        email: "",
-        password: "",
-        password_confirmation: "",
-      });
-    } catch (validationError) {
-      if (validationError.inner) {
-        const fieldErrors = {};
-        validationError.inner.forEach((err) => {
-          if (!fieldErrors[err.path]) {
-            fieldErrors[err.path] = err.message;
-          }
+        setErrors({});
+        const { full_name, email, password } = formData;
+        await registerApi({ full_name, email, password });
+        toast.success("Đăng ký tài khoản thành công!");
+        setTab("login");
+        setFormData({
+          full_name: "",
+          email: "",
+          password: "",
+          password_confirmation: "",
         });
-        setErrors(fieldErrors);
+      } catch (validationError) {
+        if (validationError.inner) {
+          const fieldErrors = {};
+          validationError.inner.forEach((err) => {
+            if (!fieldErrors[err.path]) {
+              fieldErrors[err.path] = err.message;
+            }
+          });
+          setErrors(fieldErrors);
+        }
       }
-    }
     });
   };
 
@@ -155,7 +155,11 @@ const Register = ({setTab }) => {
           <Button type="submit" className="w-full cursor-pointer">
             Đăng ký
           </Button>
-          <Button variant="outline" className="w-full cursor-pointer">
+          <Button onClick={(e) => {
+            e.preventDefault(); 
+            googleLoginApi();
+          }}
+          variant="outline" className="w-full cursor-pointer">
             Đăng nhập với Google
           </Button>
         </CardFooter>

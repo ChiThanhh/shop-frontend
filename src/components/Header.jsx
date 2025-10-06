@@ -14,9 +14,12 @@ import { toast } from "sonner";
 import { useLoading } from "@/context/loadingContext";
 import { Drawer } from "./ui/drawer";
 import Cart from "./Cart";
+import { Badge } from "./ui/badge";
+import { useCart } from "@/context/cartContext";
 
 export default function Header() {
     const { withLoading } = useLoading();
+    const { cart, setCart } = useCart();
     const [open, setOpen] = useState(false);
     const [openAuthDialog, setOpenAuthDialog] = useState(false);
     const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
@@ -120,8 +123,15 @@ export default function Header() {
                                 </Button>
                             </div>
                         )}
-                        <div>
-                            < Cart />
+                        <div className="relative">
+
+                            <Cart />
+                            <Badge
+                                variant="destructive"
+                                className="absolute -top-1 -right-2 h-4 min-w-4 rounded-full px-1 flex items-center justify-center text-[10px]"
+                            >
+                                {cart?.items?.length || 0}
+                            </Badge>
                         </div>
                     </div>
 

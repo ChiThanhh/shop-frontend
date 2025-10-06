@@ -146,3 +146,10 @@ body {
 .animate-canopy-vertical {
   animation: canopy-vertical var(--duration) linear infinite;
 }
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

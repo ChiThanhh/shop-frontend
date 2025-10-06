@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import * as Yup from "yup";
 import { toast } from 'sonner';
-import { loginApi } from '@/services/AuthService';
+import { googleLoginApi, loginApi } from '@/services/AuthService';
 import { useLoading } from '@/context/loadingContext';
 
 const loginSchema = Yup.object().shape({
@@ -24,7 +24,7 @@ const loginSchema = Yup.object().shape({
     .required("Mật khẩu là bắt buộc"),
 });
 const Login = ({ onClose }) => {
-  const {withLoading} = useLoading();
+  const { withLoading } = useLoading();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -39,24 +39,24 @@ const Login = ({ onClose }) => {
 
     e.preventDefault();
     await withLoading(async () => {
-    try {
-      await loginSchema.validate(formData, { abortEarly: false });
-      setErrors({});
-      const res = await loginApi(formData);
-      toast.success("Đăng nhập thành công!");
-      localStorage.setItem("user", JSON.stringify(res.data.user));
-      localStorage.setItem("token", JSON.stringify(res.data.accessToken));
-      if (onClose) onClose();
-    } catch (err) {
-      if (err instanceof Yup.ValidationError) {
-        const validationErrors = {};
-        err.inner.forEach((error) => {
-          validationErrors[error.path] = error.message;
-        });
-        setErrors(validationErrors);
+      try {
+        await loginSchema.validate(formData, { abortEarly: false });
+        setErrors({});
+        const res = await loginApi(formData);
+        toast.success("Đăng nhập thành công!");
+        localStorage.setItem("user", JSON.stringify(res.data.user));
+        localStorage.setItem("token", JSON.stringify(res.data.accessToken));
+        if (onClose) onClose();
+      } catch (err) {
+        if (err instanceof Yup.ValidationError) {
+          const validationErrors = {};
+          err.inner.forEach((error) => {
+            validationErrors[error.path] = error.message;
+          });
+          setErrors(validationErrors);
+        }
+        console.error(err);
       }
-      console.error(err);
-    }
     });
   };
 
@@ -110,7 +110,12 @@ const Login = ({ onClose }) => {
           <Button type="submit" className="w-full cursor-pointer" >
             Đăng nhập
           </Button>
-          <Button variant="outline" className="w-full cursor-pointer">
+          <Button
+           onClick={(e) => {
+            e.preventDefault();
+            googleLoginApi();
+          }}
+            variant="outline" className="w-full cursor-pointer">
             Đăng nhập với Google
           </Button>
         </CardFooter>
