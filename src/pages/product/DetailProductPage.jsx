@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useParams } from "react-router-dom";
-import { getPrice, getProductById } from "@/services/ProductService";
+import { getPrice, getProductById, getProductRelated } from "@/services/ProductService";
 import { useLoading } from "@/context/loadingContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,9 @@ import { toast } from "sonner";
 import { addToCart, createToCart } from "@/services/CartService";
 import { useCart } from "@/context/cartContext";
 import { useConfirm } from "@/context/confirmContext";
+import { ImageZoom } from "@/components/ui/shadcn-io/image-zoom";
+import { getInventoryByVariant } from "@/services/inventoryService";
+import { useViewHistory } from "@/context/ViewHistoryContext";
 
 // Utility to format VND
 const formatVND = (value) => {
@@ -29,15 +32,19 @@ const formatVND = (value) => {
 const DetailProductPage = () => {
   const { id } = useParams();
   const { cart, setCart } = useCart();
+  const { addToHistory } = useViewHistory();
   const [detailPage, setDetailPage] = useState(null);
+  const [relatedProducts, setRelatedProducts] = useState([]);
   const { withLoading } = useLoading();
   const { confirm } = useConfirm();
 
   const [quantity, setQuantity] = useState(1);
   const [color, setColor] = useState("");
   const [size, setSize] = useState("");
+  const [inventory, setInventory] = useState("");
   const [variantId, setVariantId] = useState("");
   const [currentPrice, setCurrentPrice] = useState(detailPage?.min_price || 0);
+  const [originPrice, setOriginPrice] = useState(detailPage?.min_price || 0);
   const token = localStorage.getItem("token");
   const user = JSON.parse(localStorage.getItem("user"));
 
@@ -46,11 +53,24 @@ const DetailProductPage = () => {
     withLoading(async () => {
       try {
         const res = await getProductById(id);
+        const resRelated = await getProductRelated(id);
         const product = res?.data ?? res;
         setDetailPage(product);
-
+        setRelatedProducts(resRelated?.data || []);
         if (product?.colors?.length > 0) setColor(product.colors[0].id);
         if (product?.sizes?.length > 0) setSize(product.sizes[0].id);
+        
+        // Thêm vào lịch sử xem
+        if (product) {
+          addToHistory({
+            product_id: product.product_id,
+            name: product.name,
+            thumbnail_url: product.thumbnail_url,
+            min_price: product.min_price,
+            original_min_price: product.original_min_price,
+            has_discount: product.has_discount,
+          });
+        }
       } catch (e) {
         console.error("Failed to fetch product detail", e);
       }
@@ -64,7 +84,10 @@ const DetailProductPage = () => {
       try {
         const res = await getPrice(detailPage?.product_id, color, size);
         setCurrentPrice(res.data?.list_amount);
-        setVariantId(res.data?.variant_id)
+        setOriginPrice(res.data?.final_price);
+        setVariantId(res.data?.variant_id);
+        const dataInven = await getInventoryByVariant(res.data?.variant_id);
+        setInventory(dataInven.data?.available_qty);
       } catch (e) {
         console.error("Failed to fetch price", e);
       }
@@ -74,6 +97,7 @@ const DetailProductPage = () => {
   }, [detailPage?.product_id, color, size]);
 
   const priceText = useMemo(() => formatVND(currentPrice), [currentPrice]);
+  const originalPriceText = useMemo(() => formatVND(originPrice), [originPrice]);
   const handleAdd = async () => {
     if (!token) {
       toast.error("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng");
@@ -104,19 +128,19 @@ const DetailProductPage = () => {
         cart_id: cartId,
         variant_id: variantId,
         qty: quantity,
-        unit_price: currentPrice,
+        unit_price: originPrice  || currentPrice,
       };
       const ok = await confirm("Xác nhận thêm sản phẩm vào giỏ hàng?");
       if (!ok) return;
 
       await addToCart(dataAdd);
-      
+
       // Fetch lại giỏ hàng để có dữ liệu đầy đủ
       const updatedCart = await withLoading(async () => {
         const { getListCart } = await import("@/services/CartService");
         return await getListCart();
       });
-      
+
       setCart(updatedCart.data);
       toast.success("Thêm vào giỏ hàng thành công");
     } catch (e) {
@@ -133,12 +157,13 @@ const DetailProductPage = () => {
         <div className="col-span-3">
           <div className="grid grid-cols-2 h-screen overflow-y-auto scrollbar-hide gap-2">
             {detailPage?.image_urls?.map((img, idx) => (
-              <img
-                key={idx}
-                src={img}
-                alt={`${detailPage?.name}-${idx}`}
-                className="w-full h-auto object-cover "
-              />
+              <ImageZoom key={idx}>
+                <img
+                  src={img}
+                  alt={`${detailPage?.name}-${idx}`}
+                  className="w-full h-auto object-cover "
+                />
+              </ImageZoom>
             ))}
           </div>
 
@@ -150,9 +175,14 @@ const DetailProductPage = () => {
             </div>
 
             {/* Price */}
-            {detailPage?.min_price != null && (
-              <div className="text-2xl font-bold text-red-500">{priceText}</div>
-            )}
+
+            <div className="space-y-1 flex items-center gap-3">
+              <div className="text-2xl font-bold text-red-500">{originalPriceText || priceText}</div>
+              {originPrice && (
+                <div className="text-sm text-muted-foreground line-through">{priceText}</div>
+              )}
+            </div>
+
 
             {/* Options */}
             <div className="space-y-3">
@@ -216,6 +246,7 @@ const DetailProductPage = () => {
                   onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                   aria-label="Giảm số lượng"
                   className="cursor-pointer"
+                  disabled={inventory === 0}
                 >
                   -
                 </Button>
@@ -223,23 +254,33 @@ const DetailProductPage = () => {
                   <Input
                     type="number"
                     min={1}
+                    max={inventory} // chặn nhập vượt tồn
                     value={quantity}
                     onChange={(e) => {
                       const v = parseInt(e.target.value, 10);
-                      setQuantity(Number.isNaN(v) ? 1 : Math.max(1, v));
+                      if (Number.isNaN(v)) {
+                        setQuantity(1);
+                      } else {
+                        setQuantity(Math.min(Math.max(1, v), inventory));
+                      }
                     }}
+                    disabled={inventory === 0}
                   />
                 </div>
                 <Button
                   variant="outline"
                   type="button"
-                  onClick={() => setQuantity((q) => q + 1)}
+                  onClick={() => setQuantity((q) => Math.min(inventory, q + 1))}
                   aria-label="Tăng số lượng"
                   className="cursor-pointer"
+                  disabled={inventory === 0}
                 >
                   +
                 </Button>
               </div>
+            </div>
+            <div className="space-y-2 flex items-center ">
+              <div className="text-sm text-muted-foreground">Còn tồn: <span className="font-bold">{inventory} sản phẩm</span></div>
             </div>
 
             <div className="">
@@ -247,8 +288,9 @@ const DetailProductPage = () => {
                 variant="outline"
                 onClick={handleAdd}
                 className="w-full cursor-pointer bg-black text-white border-black hover:bg-gray-800 hover:text-white transition-all duration-300"
+                disabled={inventory === 0}
               >
-                Thêm vào giỏ hàng
+                {inventory === 0 ? "Hết hàng" : "Thêm vào giỏ hàng"}
               </Button>
             </div>
             {detailPage?.description && (
@@ -299,7 +341,7 @@ const DetailProductPage = () => {
       </div>
       <Review product_id={detailPage?.product_id} />
       <div className="flex items-center justify-center  bg-gray-100 pb-10">
-        <RelatedProducts />
+        <RelatedProducts relatedProducts={relatedProducts} />
       </div>
     </div>
   );

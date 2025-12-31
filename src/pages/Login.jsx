@@ -15,6 +15,8 @@ import * as Yup from "yup";
 import { toast } from 'sonner';
 import { googleLoginApi, loginApi } from '@/services/AuthService';
 import { useLoading } from '@/context/loadingContext';
+import { addUserHistoryView } from '@/services/UserHistoryViewService';
+import { setAuthToken } from '@/services/api';
 
 const loginSchema = Yup.object().shape({
   email: Yup.string().email("Email không hợp lệ").required("Email là bắt buộc"),
@@ -44,8 +46,19 @@ const Login = ({ onClose }) => {
         setErrors({});
         const res = await loginApi(formData);
         toast.success("Đăng nhập thành công!");
+        setAuthToken(res.data.accessToken);
         localStorage.setItem("user", JSON.stringify(res.data.user));
-        localStorage.setItem("token", JSON.stringify(res.data.accessToken));
+        localStorage.setItem("token", res.data.accessToken);
+
+        // Sync localStorage history lên server nếu có
+        const productHistory = JSON.parse(localStorage.getItem("viewHistory")) || [];
+        if (productHistory.length > 0) {
+          await addUserHistoryView({ productIds: productHistory.map(p => p.product_id) });
+          localStorage.removeItem("viewHistory");
+        }
+        
+        // Reload page để context load lại history từ API
+        window.location.reload();
         if (onClose) onClose();
       } catch (err) {
         if (err instanceof Yup.ValidationError) {

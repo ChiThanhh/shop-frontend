@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import React, { use, useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
 import TopHeader from "./TopHeader";
 import { getCategory } from "@/services/CategoryService";
@@ -7,19 +7,26 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { motion, AnimatePresence } from "framer-motion";
 import Auth from "@/pages/Auth";
-import { LogOut, ShoppingCart } from "lucide-react";
+import { LogOut, ReceiptText, ShoppingCart, Heart, Clock, CircleUser } from "lucide-react";
 import { Dialog } from "@radix-ui/react-dialog";
 import { logoutApi } from "@/services/AuthService";
 import { toast } from "sonner";
 import { useLoading } from "@/context/loadingContext";
 import { Drawer } from "./ui/drawer";
-import Cart from "./Cart";
+import Cart from "./order/Cart";
 import { Badge } from "./ui/badge";
 import { useCart } from "@/context/cartContext";
+import CategoryMenu from "./CategoryMenu";
+import { TextRevealButton } from "./ui/shadcn-io/text-reveal-button";
+import ThemeToggle from "./ThemeToggle";
+import { useWishlist } from "@/context/WishlistContext";
 
 export default function Header() {
     const { withLoading } = useLoading();
+    const navigate = useNavigate();
     const { cart, setCart } = useCart();
+    const { wishlist } = useWishlist();
+    const [search, setSearch] = useState("")
     const [open, setOpen] = useState(false);
     const [openAuthDialog, setOpenAuthDialog] = useState(false);
     const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
@@ -34,10 +41,7 @@ export default function Header() {
         withLoading(fetchData);
     }, []);
 
-    const getChildren = (parentId) =>
-        categories
-            .filter((cat) => cat.parent_id === parentId)
-            .sort((a, b) => a.sort_order - b.sort_order);
+
     const handleLogout = async () => {
         withLoading(async () => {
             await logoutApi();
@@ -49,76 +53,73 @@ export default function Header() {
             window.location.reload();
         });
     }
+
+    const handleSearch = (e) => {
+        if (e.key === "Enter") {
+            const value = search.trim()
+            if (value === "") {
+                navigate("/product-list");
+                return;
+            }
+            navigate(`/product-list?search=${encodeURIComponent(value)}`)
+        }
+    }
     return (
         <>
-            <TopHeader />
-            <header className="w-full border-b shadow-lg ">
+
+            <header className="w-full border-b shadow-lg sticky top-0 z-50 bg-white dark:bg-gray-900 transition-colors">
+                <TopHeader />
                 <div className="container mx-auto flex h-16 items-center justify-between px-4">
-                    <Link data-aos="fade-in" data-aos-delay="700" to="/" className="text-xl font-bold tracking-tight">
-                        Fashion<span className="text-primary">Shop</span>
+                    <Link data-aos="fade-in" data-aos-delay="700" to="/" className="text-[8px] font-bold tracking-tight">
+                         <TextRevealButton text="Peanut.io" />
                     </Link>
 
                     <div data-aos="fade-in" data-aos-delay="800" className="hidden md:flex items-center gap-3 text-base">
-                        <Input placeholder="Tìm kiếm sản phẩm..." className="w-96" />
+                        <Input placeholder="Tìm kiếm sản phẩm..." className="w-96" value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            onKeyDown={handleSearch} />
                     </div>
                     <nav className="hidden md:flex items-center gap-6 text-base">
-                        {categories
-                            .filter((item) => item.level === "1")
-                            .sort((a, b) => a.sort_order - b.sort_order)
-                            .map((item, index) => {
-                                const children = getChildren(item.category_id);
-                                return (
-                                    <div
-                                        data-aos="fade-down"
-                                        data-aos-delay={index * 100}
-                                        key={item.category_id} className="relative group">
-                                        <Link
-                                            to={item.slug}
-                                            className="hover:text-primary px-2 py-1 font-medium transition-colors duration-200"
-                                        >
-                                            {item.name}
-                                        </Link>
-
-                                        {children.length > 0 && (
-                                            <div
-                                                className="absolute left-0 top-full hidden group-hover:flex flex-col bg-white border border-gray-200 shadow-lg min-w-[300px] z-50 rounded-lg overflow-hidden transition-all duration-300 opacity-0 group-hover:opacity-100 group-hover:translate-y-0 transform -translate-y-2"
-                                            >
-                                                {children
-                                                    .sort((a, b) => a.sort_order - b.sort_order)
-                                                    .map((child,) => (
-
-                                                        <Link
-                                                            key={child.category_id}
-                                                            to={child.slug}
-                                                            className="px-4 py-2 hover:bg-gray-100 transition-colors duration-200"
-                                                        >
-                                                            {child.name}
-                                                        </Link>
-
-                                                    ))}
-                                            </div>
-                                        )}
-
-                                    </div>
-                                );
-                            })}
+                        <CategoryMenu categories={categories} />
                     </nav>
 
 
                     <div className="hidden md:flex items-center gap-3">
+                        
+                        {/* Dark Mode Toggle */}
+                 
+                             <ThemeToggle/>
+
+                        {/* Wishlist */}
+                        <div className="relative cursor-pointer hover:opacity-70 transition-opacity" onClick={() => navigate('/wishlist')}>
+                            <Heart className="w-5 h-5 text-gray-700 dark:text-white" />
+                            {wishlist.length > 0 && (
+                                <Badge
+                                    variant="destructive"
+                                    className="absolute -top-1 -right-2 h-4 min-w-4 c rounded-full px-1 flex items-center justify-center text-[10px] "
+                                >
+                                    {wishlist.length}
+                                </Badge>
+                            )}
+                        </div>
+
+                        {/* View History */}
+                        <div className="relative cursor-pointer hover:opacity-70 transition-opacity" onClick={() => navigate('/view-history')}>
+                            <Clock className="w-5 h-5 text-gray-700 dark:text-white" />
+                        </div>
 
                         {token ? (
                             <div data-aos="fade-in" className="flex items-center gap-3">
-                                <span className="text-sm font-medium">{user.full_name}</span>
+                                <span className="text-sm font-medium text-gray-700 dark:text-white">{user.full_name}</span>
 
-                                <button onClick={() => setOpenConfirmDialog(true)} className="cursor-pointer" >
-                                    <LogOut className="w-5 h-5" />
+                                <button onClick={() => setOpenConfirmDialog(true)} className="cursor-pointer hover:opacity-70 transition-opacity" >
+                                    <LogOut className="w-5 h-5 text-gray-700 dark:text-white" />
 
                                 </button>
                             </div>
                         ) : (
                             <div data-aos="fade-in">
-                                <Button onClick={() => setOpenAuthDialog(true)} className="bg-black text-white hover:text-gray-900 hover:text-white transition-all duration-300 cursor-pointer">
+                                <Button onClick={() => setOpenAuthDialog(true)} className="bg-black text-white hover:bg-gray-800 transition-all duration-300 cursor-pointer">
                                     Đăng ký / Đăng nhập
                                 </Button>
                             </div>
@@ -132,6 +133,16 @@ export default function Header() {
                             >
                                 {cart?.items?.length || 0}
                             </Badge>
+                        </div>
+                        <div className="relative ml-2 cursor-pointer hover:opacity-70 transition-opacity">
+
+                            <ReceiptText onClick={() => navigate('/my-order')} className="w-5 h-5 font-light text-gray-700 dark:text-white" />
+
+                        </div>
+                        <div className="relative ml-2 cursor-pointer hover:opacity-70 transition-opacity">
+
+                            <CircleUser  onClick={() => navigate('/profile')} className="w-5 h-5 font-light text-gray-700 dark:text-white" />
+
                         </div>
                     </div>
 
@@ -174,7 +185,7 @@ export default function Header() {
             <Dialog open={openConfirmDialog} onOpenChange={setOpenConfirmDialog}>
                 <AnimatePresence>
                     {openConfirmDialog && (
-                        <div className="fixed inset-0 flex items-center justify-center z-50">
+                        <div className="fixed  inset-0 flex items-center justify-center z-50">
                             <motion.div
                                 className="absolute inset-0 bg-black/50"
                                 initial={{ opacity: 0 }}
@@ -184,7 +195,7 @@ export default function Header() {
                             />
 
                             <motion.div
-                                className="relative z-10 bg-white p-6 rounded-lg shadow-lg max-w-sm w-full"
+                                className="relative z-10 dark:bg-gray-800 bg-white p-6 rounded-lg shadow-lg max-w-sm w-full"
                                 initial={{ opacity: 0, scale: 0.9, y: -20 }}
                                 animate={{ opacity: 1, scale: 1, y: 0 }}
                                 exit={{ opacity: 0, scale: 0.9, y: -20 }}

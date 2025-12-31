@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { addToCart, createToCart } from "@/services/CartService";
 import { useConfirm } from "@/context/confirmContext";
 import { useCart } from "@/context/cartContext";
+import { getInventoryByVariant } from "@/services/inventoryService";
 
 // Utility to format VND
 const formatVND = (value) => {
@@ -53,6 +54,7 @@ const DetailProduct = (p) => {
     const [quantity, setQuantity] = useState(1);
     const [color, setColor] = useState("");
     const [size, setSize] = useState("");
+    const [inventory, setInventory] = useState(0);
     const [currentPrice, setCurrentPrice] = useState(price);
     const { confirm } = useConfirm();
     const { cart, setCart } = useCart();
@@ -68,7 +70,9 @@ const DetailProduct = (p) => {
             try {
                 const res = await getPrice(product_id, color, size);
                 setCurrentPrice(res.data?.list_amount ?? price);
-                setVariantId(res.data?.variant_id)
+                setVariantId(res.data?.variant_id);
+                const dataInven = await getInventoryByVariant(res.data?.variant_id);
+                setInventory(dataInven.data?.available_qty);
             } catch (e) {
                 console.error("Failed to fetch price", e);
             }
@@ -231,6 +235,7 @@ const DetailProduct = (p) => {
                                     onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                                     aria-label="Giảm số lượng"
                                     className="cursor-pointer"
+                                    disabled={inventory === 0}
                                 >
                                     -
                                 </Button>
@@ -238,24 +243,34 @@ const DetailProduct = (p) => {
                                     <Input
                                         type="number"
                                         min={1}
+                                        max={inventory} // chặn nhập vượt tồn
                                         value={quantity}
                                         onChange={(e) => {
                                             const v = parseInt(e.target.value, 10);
-                                            setQuantity(Number.isNaN(v) ? 1 : Math.max(1, v));
+                                            if (Number.isNaN(v)) {
+                                                setQuantity(1);
+                                            } else {
+                                                setQuantity(Math.min(Math.max(1, v), inventory));
+                                            }
                                         }}
+                                        disabled={inventory === 0}
                                     />
                                 </div>
                                 <Button
                                     variant="outline"
                                     type="button"
-                                    onClick={() => setQuantity((q) => q + 1)}
+                                    onClick={() => setQuantity((q) => Math.min(inventory, q + 1))}
                                     aria-label="Tăng số lượng"
                                     className="cursor-pointer"
+                                    disabled={inventory === 0}
                                 >
                                     +
                                 </Button>
                             </div>
                         </div>
+        <div className="space-y-2 flex items-center ">
+              <div className="text-sm text-muted-foreground">Còn tồn: <span className="font-bold">{inventory} sản phẩm</span></div>
+            </div>
 
                         <DialogFooter className="">
 
@@ -264,8 +279,9 @@ const DetailProduct = (p) => {
                                 variant="outline"
                                 onClick={handleAdd}
                                 className="cursor-pointer bg-black text-white border-black transition-all ducration-300"
+                              disabled={inventory === 0}
                             >
-                                Thêm vào giỏ hàng
+                                {inventory === 0 ? "Hết hàng" : "Thêm vào giỏ hàng"}
                             </Button>
 
 

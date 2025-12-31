@@ -5,12 +5,12 @@ const Footer = () => {
   return (
     <footer className="bg-black text-white mt-12">
       <div className="max-w-7xl mx-auto px-4 py-12 grid grid-cols-1 md:grid-cols-4 gap-8">
-        
+
         {/* Logo + Mô tả */}
         <div>
-          <h2 className="text-white text-2xl font-bold mb-4">MyShop</h2>
+          <h2 className="text-white text-2xl font-bold mb-4">Peanut</h2>
           <p className="text-sm">
-            MyShop mang đến xu hướng thời trang mới nhất, chất lượng và phong
+            Peanut mang đến xu hướng thời trang mới nhất, chất lượng và phong
             cách dành cho bạn.
           </p>
         </div>
@@ -40,9 +40,9 @@ const Footer = () => {
         {/* Liên hệ */}
         <div>
           <h3 className="text-white text-lg font-semibold mb-4">Liên hệ</h3>
-          <p className="text-sm">📍 123 Đường ABC, TP. HCM</p>
-          <p className="text-sm">📞 0123 456 789</p>
-          <p className="text-sm">✉️ support@myshop.com</p>
+          <p className="text-sm"> 163 Phạm Văn Bạch, P.Tân Sơn, TP.HCM</p>
+          <p className="text-sm"> +84 348412593</p>
+          <p className="text-sm"> support@peanut.com</p>
 
           {/* Social Icons */}
           <div className="flex gap-4 mt-4">
@@ -55,7 +55,7 @@ const Footer = () => {
 
       {/* Copyright */}
       <div className="border-t border-gray-700 py-4 text-center text-sm">
-        © {new Date().getFullYear()} MyShop. All rights reserved.
+        © {new Date().getFullYear()} Peanut. All rights reserved.
       </div>
     </footer>
   );

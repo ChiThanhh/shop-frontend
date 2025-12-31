@@ -80,21 +80,18 @@ export const AnimatedTestimonials = ({
   cardClassName
 }) => (
   <div className={cn("w-full overflow-x-hidden py-4", className)}>
-    {[false, true, false].map((reverse, index) => (
-      <AnimatedCanopy
-        key={`Canopy-${index}`}
-        reverse={reverse}
-        className="[--duration:25s]"
-        pauseOnHover
-        applyMask={false}
-        repeat={3}>
-        {data.map((testimonial) => (
-          <TestimonialCard
-            key={testimonial.name}
-            testimonial={testimonial}
-            className={cardClassName} />
-        ))}
-      </AnimatedCanopy>
-    ))}
+    <AnimatedCanopy
+      reverse={false}
+      className="[--duration:25s]"
+      pauseOnHover
+      applyMask={false}
+      repeat={3}>
+      {data.map((testimonial) => (
+        <TestimonialCard
+          key={testimonial.name}
+          testimonial={testimonial}
+          className={cardClassName} />
+      ))}
+    </AnimatedCanopy>
   </div>
 );

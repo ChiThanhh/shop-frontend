@@ -1,4 +1,4 @@
-import React from "react"
+import React, { useState } from "react"
 import {
   Drawer,
   DrawerTrigger,
@@ -16,13 +16,16 @@ import { clearCart, deleteItemCart, updateQuantityCart } from "@/services/CartSe
 import { toast } from "sonner"
 import { useConfirm } from "@/context/confirmContext"
 import { useLoading } from "@/context/loadingContext"
-import { Input } from "./ui/input"
+import { Input } from "../ui/input"
+import { useNavigate } from "react-router-dom"
 
 export default function Cart() {
   const { confirm } = useConfirm();
   const { withLoading } = useLoading();
   const { cart, setCart } = useCart();
-
+  const [open, setOpen] = useState(false);
+  const user = JSON.parse(localStorage.getItem("user")) || null;
+  const navigate = useNavigate();
   const handleUpdateQuantity = async (itemId, newQty) => {
     if (newQty < 1) return;
     await withLoading(async () => {
@@ -41,11 +44,10 @@ export default function Cart() {
       }
     });
   };
-  console.log("Cart items from context:", cart);
-const total = cart?.items?.reduce(
-  (sum, item) => sum + (item?.unit_price || 0) * (item?.qty || 0),
-  0
-) || 0;
+  const total = cart?.items?.reduce(
+    (sum, item) => sum + (item?.unit_price || 0) * (item?.qty || 0),
+    0
+  ) || 0;
 
   const handleRemoveFromCart = async (itemId) => {
     const ok = await confirm("Bạn có chắc chắn muốn xóa sản phẩm này khỏi giỏ hàng?");
@@ -83,8 +85,18 @@ const total = cart?.items?.reduce(
       });
     }
   }
+
+  const handleCheckout = () => {
+    if (!user) {
+      toast.error("Vui lòng đăng nhập để tiếp tục thanh toán");
+      return;
+    } 
+    setOpen(false);
+    setTimeout(() => navigate("/cart"), 300);
+    
+  };
   return (
-    <Drawer direction="right" >
+    <Drawer direction="right" open={open} onOpenChange={setOpen}>
       <DrawerTrigger asChild>
         <ShoppingCart className="w-5 h-5 ml-3 cursor-pointer" />
       </DrawerTrigger>
@@ -171,7 +183,7 @@ const total = cart?.items?.reduce(
             <span>{total.toLocaleString("vi-VN")}đ</span>
           </div>
 
-          <Button className="w-full">Thanh toán</Button>
+          <Button onClick={handleCheckout} className="w-full cursor-pointer">Thanh toán</Button>
           <DrawerClose asChild>
             <Button variant="outline" className="w-full">
               Đóng

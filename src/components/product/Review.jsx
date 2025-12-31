@@ -81,13 +81,14 @@ const Review = ({ product_id }) => {
     }
     return (
         <>
-            <div className="w-full pb-6 mt-10 bg-gray-100">
+            <div className="w-full pb-6 mt-10 dark:bg-gray-900 bg-gray-100">
                 <div className=" flex justify-center">
                     <div className="text-lg font-semibold mt-6 uppercase"> Đánh giá sản phẩm</div>
 
                 </div>
+      
                 <div className="max-w-7xl mx-auto px-2 py-1 flex">
-                    <div className="mt-6 w-1/3 shadow-lg bg-white rounded-lg space-y-4 p-4">
+                    <div className="mt-6 w-1/3 shadow-lg dark:bg-gray-800   bg-white rounded-lg space-y-4 p-4">
                         <div className="flex justify-between mt-2">
 
                             <div className="flex ">
@@ -174,7 +175,12 @@ const Review = ({ product_id }) => {
                         </div>
                     </div>
                     <div className=" ml-4 w-2/3">
-                        <div className=" mt-6 space-y-4 shadow-lg p-4 rounded-lg bg-white">
+                        <div className=" mt-6 space-y-4 shadow-lg p-4 rounded-lg dark:bg-gray-800 bg-white">
+                            <div>
+                                {listReviews.length === 0 && (
+                                    <div className="text-center text-gray-500">Chưa có đánh giá nào cho sản phẩm này.</div>
+                                )}
+                            </div>
                             <div>
                                 {!showAll ? (
                                     <>

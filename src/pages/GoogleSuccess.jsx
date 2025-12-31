@@ -1,4 +1,6 @@
+import { setAuthToken } from "@/services/api";
 import { verifyToken } from "@/services/AuthService";
+import { addUserHistoryView } from "@/services/UserHistoryViewService";
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -15,10 +17,16 @@ const GoogleSuccess = () => {
             const data = await verifyToken(token);
 
             const user = data?.data;
-
+            setAuthToken(token);
             localStorage.setItem("user", JSON.stringify(user));
-
+            const productHistory = JSON.parse(localStorage.getItem("viewHistory")) || [];
+            if (productHistory.length > 0) {
+                await addUserHistoryView({ productIds: productHistory.map(p => p.product_id) });
+                localStorage.removeItem("viewHistory");
+            }
             navigate("/");
+            window.location.reload();
+
         }
     }, [navigate]);
 
